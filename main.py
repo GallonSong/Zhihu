@@ -22,7 +22,7 @@ XSRF = ''
 
 
 def set_cookie():
-    with open('cookie.txt', 'r') as f:
+    with open('/Users/inad/Documents/scripts/zhihu/cookie.txt', 'r') as f:
         cookie = f.read()
     if not cookie:
         return False
