@@ -1,8 +1,10 @@
 # coding:utf8
+import os
 import json
 import requests
 from bs4 import BeautifulSoup as bs
 
+FILE_PATH = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
 session = requests.session()
 
 HOST = 'www.zhihu.com'
@@ -22,7 +24,7 @@ XSRF = ''
 
 
 def set_cookie():
-    with open('/Users/inad/Documents/scripts/zhihu/cookie.txt', 'r') as f:
+    with open(FILE_PATH + 'cookie.txt', 'r') as f:
         cookie = f.read()
     if not cookie:
         return False
@@ -38,9 +40,9 @@ def set_topic_address():
 
 
 def get_xsrf():
-    session.get('http://www.zhihu.com', headers=HEADER)
+    session.get('http://www.zhihu.com/topic', headers=HEADER)
     xsrf = bs(
-        session.get('http://www.zhihu.com', headers=HEADER).content, 'html.parser'
+        session.get('http://www.zhihu.com/topic', headers=HEADER).content, 'html.parser'
     ).find('input', attrs={'name': '_xsrf'})['value']
     return xsrf
 
@@ -55,9 +57,9 @@ def get_data(topic_code):
         question_count = page_html.find("meta", itemprop="questionCount")["content"].encode('utf8')
         top_answer_count = page_html.find("meta", itemprop="topAnswerCount")["content"].encode('utf8')
         follower_count = page_html.find("div", class_="zm-topic-side-followers-info").find("strong").string.encode('utf8')
-        print ','.join(map(str, [code, key_word, question_count, top_answer_count, follower_count]))
+        return ','.join(map(str, [code, key_word, question_count, top_answer_count, follower_count]))
     else:
-        print data_response.status_code, data_response.text
+        return str(data_response.status_code) + ' ' + data_response.text
 
 
 def get_topics(topic_tree):
@@ -94,28 +96,36 @@ def get_topics(topic_tree):
 
 
 if __name__ == "__main__":
-    if not set_cookie():
-        print("请先登录知乎, 并将cookie粘贴在Cookie.txt文件中.")
-        raise Exception
+    print FILE_PATH
+    try:
+        if not set_cookie():
+            print("请先登录知乎, 并将cookie粘贴在Cookie.txt文件中.")
+            raise Exception
 
-    code, topic_page = set_topic_address()
-    if not code:
-        print("请输入有效的话题编号.")
-        raise Exception
+        code, topic_page = set_topic_address()
+        if not code:
+            print("请输入有效的话题编号.")
+            raise Exception
 
-    topics = dict()
-    listed_topic, loaded_topic = list(), list()
-    XSRF = get_xsrf()
-    response = requests.post(topic_page, data={'_xsrf': XSRF}, headers=HEADER)
+        topics = dict()
+        listed_topic, loaded_topic = list(), list()
+        XSRF = get_xsrf()
+        response = requests.post(topic_page, data={'_xsrf': XSRF}, headers=HEADER)
 
-    if response.status_code == 200:
-        get_topics(json.loads(response.content)['msg'])
-    else:
-        print response.status_code, response.text
+        if response.status_code == 200:
+            get_topics(json.loads(response.content)['msg'])
+        else:
+            print response.status_code, response.text
 
-    for code in topics.keys():
-        try:
-            get_data(code)
-        except Exception as e:
-            print e
-            continue
+        with open(FILE_PATH + 'result.txt', 'w') as f:
+            for code in topics.keys():
+                try:
+                    result = get_data(code)
+                    print result
+                    f.write(result + '\n')
+                except Exception as e:
+                    print e
+                    continue
+        raw_input("按enter键结束")
+    except Exception as e:
+        raw_input(e.message + "发生错误. 按enter键结束")

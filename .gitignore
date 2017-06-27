@@ -2,3 +2,9 @@
 .DS_Store
 
 cookie.txt
+result.txt
+
+zh*/
+build/
+dist/
+*.spec
